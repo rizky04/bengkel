@@ -56,7 +56,8 @@ class StockController extends Controller
         ]);
 
         $diubah = 0;
-        DB::transaction(function () use ($data, &$diubah) {
+        $branchId = current_branch();
+        DB::transaction(function () use ($data, $branchId, &$diubah) {
             foreach ($data['fisik'] as $partId => $fisik) {
                 if ($fisik === null || $fisik === '') {
                     continue; // tidak dihitung = lewati, bukan dianggap nol
@@ -67,14 +68,15 @@ class StockController extends Controller
                     continue;
                 }
 
-                $selisih = (int) $fisik - $part->stok;
+                $stokSistem = $part->stokDi($branchId);
+                $selisih = (int) $fisik - $stokSistem;
                 if ($selisih === 0) {
                     continue;
                 }
 
-                $part->moveStock('adjust', $selisih, [
+                $part->moveStock($branchId, 'adjust', $selisih, [
                     'tipe' => 'opname',
-                    'keterangan' => $data['keterangan'] ?: 'Stok opname (sistem ' . $part->stok . ' → fisik ' . $fisik . ')',
+                    'keterangan' => $data['keterangan'] ?: "Stok opname (sistem $stokSistem → fisik $fisik)",
                 ]);
                 $diubah++;
             }
@@ -94,6 +96,7 @@ class StockController extends Controller
     public function moves(Request $request)
     {
         $moves = StockMove::with('part', 'user')
+            ->where('branch_id', current_branch())
             ->when($request->get('tipe'), fn ($q, $v) => $q->where('tipe', $v))
             ->when($request->get('dari'), fn ($q, $v) => $q->whereDate('tgl', '>=', $v))
             ->when($request->get('sampai'), fn ($q, $v) => $q->whereDate('tgl', '<=', $v))
