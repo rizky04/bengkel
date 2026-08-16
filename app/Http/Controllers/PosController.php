@@ -81,8 +81,18 @@ class PosController extends Controller
             'items.*.diskon' => 'nullable|numeric|min:0',
         ], [], ['items' => 'item transaksi']);
 
-        $branchId = current_branch();
-        $trx = DB::transaction(function () use ($data, $request, $branchId) {
+        $trx = static::createTransaction($data, current_branch(), auth()->id());
+
+        \App\Models\ActivityLog::catat('transaksi_baru', "{$trx->no_nota} • " . rupiah($trx->total), 'transaction', $trx->id);
+
+        return redirect()->route('transactions.show', $trx)
+            ->with('success', "Transaksi {$trx->no_nota} tersimpan.");
+    }
+
+    /** Buat transaksi dari data POS. Dipakai oleh web POST /pos dan API POST /api/pos. */
+    public static function createTransaction(array $data, ?int $branchId, ?int $userId): Transaction
+    {
+        return DB::transaction(function () use ($data, $branchId, $userId) {
             // 1) hitung subtotal dari item
             $subtotal = 0;
             foreach ($data['items'] as $it) {
@@ -152,7 +162,7 @@ class PosController extends Controller
                 'promo_id' => $promoDipakai,
                 'pajak' => $pajak,
                 'total' => $total,
-                'user_id' => auth()->id(),
+                'user_id' => $userId,
                 'tgl' => now(),
             ]);
 
@@ -191,10 +201,5 @@ class PosController extends Controller
 
             return $trx;
         });
-
-        \App\Models\ActivityLog::catat('transaksi_baru', "{$trx->no_nota} • " . rupiah($trx->total), 'transaction', $trx->id);
-
-        return redirect()->route('transactions.show', $trx)
-            ->with('success', "Transaksi {$trx->no_nota} tersimpan.");
     }
 }

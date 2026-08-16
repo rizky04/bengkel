@@ -17,4 +17,19 @@ class PurchaseItem extends Model
     {
         return $this->belongsTo(Part::class);
     }
+
+    public function returnItems()
+    {
+        return $this->hasMany(PurchaseReturnItem::class);
+    }
+
+    public function qtyDiretur(): int
+    {
+        return (int) $this->returnItems()->sum('qty');
+    }
+
+    public function sisaRetur(): int
+    {
+        return $this->qty - $this->qtyDiretur();
+    }
 }

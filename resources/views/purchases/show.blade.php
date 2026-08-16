@@ -37,6 +37,22 @@
                 </tfoot>
             </table>
 
+            {{-- Riwayat retur pembelian --}}
+            @if ($purchase->returns->count())
+                <div class="mt-4 border-t pt-4">
+                    <div class="text-sm font-semibold text-gray-700 mb-2">Riwayat Retur Pembelian</div>
+                    <div class="space-y-1">
+                        @foreach ($purchase->returns as $r)
+                            <div class="flex justify-between text-sm">
+                                <a href="{{ route('purchase-returns.show', $r) }}" class="text-brand hover:underline font-mono">{{ $r->no }}</a>
+                                <span class="text-gray-500">{{ $r->tgl?->format('d/m/Y') }} · {{ $r->alasan }}</span>
+                                <span class="text-rose-600 font-medium">− {{ rupiah($r->total) }}</span>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
             <div class="flex flex-wrap gap-2 pt-4 border-t mt-4 items-start" x-data="{ open: false }">
                 <a href="{{ route('purchases.index') }}" class="btn-secondary">Kembali</a>
                 @if (auth()->user()->canAccess('purchases_edit'))
@@ -46,6 +62,9 @@
                             @csrf @method('PATCH')
                             <button class="btn-secondary">Tandai Lunas</button>
                         </form>
+                    @endif
+                    @if ($purchase->items->contains(fn ($it) => $it->sisaRetur() > 0))
+                        <a href="{{ route('purchase-returns.create', $purchase) }}" class="btn-secondary">↩ Retur Barang</a>
                     @endif
                 @endif
                 <button type="button" @click="open = true" x-show="!open" class="btn-danger">Batalkan Pembelian</button>

@@ -63,7 +63,10 @@ Route::middleware('auth')->group(function () {
         Route::put('purchases/{purchase}', [PurchaseController::class, 'update'])->name('purchases.update');
         Route::patch('purchases/{purchase}/paid', [PurchaseController::class, 'markPaid'])->name('purchases.paid');
         Route::delete('purchases/{purchase}', [PurchaseController::class, 'destroy'])->name('purchases.destroy');
+        Route::get('purchases/{purchase}/returns/create', [\App\Http\Controllers\PurchaseReturnController::class, 'create'])->name('purchase-returns.create');
+        Route::post('purchases/{purchase}/returns', [\App\Http\Controllers\PurchaseReturnController::class, 'store'])->name('purchase-returns.store');
     });
+    Route::get('purchase-returns/{purchaseReturn}', [\App\Http\Controllers\PurchaseReturnController::class, 'show'])->name('purchase-returns.show')->middleware('permission:purchases');
     Route::middleware('permission:stock')->group(function () {
         Route::get('stock', [StockController::class, 'index'])->name('stock.index');
         Route::get('stock/opname', [StockController::class, 'opnameForm'])->name('stock.opname');
