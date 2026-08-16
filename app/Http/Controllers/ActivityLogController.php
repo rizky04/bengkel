@@ -18,3 +18,4 @@ class ActivityLogController extends Controller
         return view('activity.index', compact('logs', 'aksiList'));
     }
 }
+//oke
