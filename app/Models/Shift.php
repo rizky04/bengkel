@@ -29,7 +29,7 @@ class Shift extends Model
 
     public function penjualanTunai(): float
     {
-        return (float) Payment::where('metode', 'tunai')
+        return (float) Payment::where('metode', 'tunai')->where('branch_id', $this->branch_id)
             ->whereBetween('tgl_bayar', $this->window())->sum('jumlah');
     }
 
@@ -37,14 +37,14 @@ class Shift extends Model
     {
         [$a, $b] = $this->window();
 
-        return (float) Expense::where('metode', 'tunai')
+        return (float) Expense::where('metode', 'tunai')->where('branch_id', $this->branch_id)
             ->whereBetween('created_at', [$a, $b])->sum('nominal');
     }
 
     public function jumlahTransaksi(): int
     {
-        return Transaction::aktif()->whereBetween('tgl', $this->window())
-            ->where('user_id', $this->user_id)->count();
+        return Transaction::aktif()->where('branch_id', $this->branch_id)
+            ->whereBetween('tgl', $this->window())->where('user_id', $this->user_id)->count();
     }
 
     /** Kas seharusnya di laci: kas awal + tunai masuk − pengeluaran tunai. */

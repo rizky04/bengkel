@@ -8,7 +8,7 @@ class Purchase extends Model
 {
     protected $guarded = [];
 
-    protected $casts = ['tgl' => 'date'];
+    protected $casts = ['tgl' => 'date', 'total' => 'float'];
 
     public function items()
     {

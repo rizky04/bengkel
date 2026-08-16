@@ -35,6 +35,7 @@ class SalaryController extends Controller
             // 1) catat pengeluaran kategori Gaji
             $catGaji = ExpenseCat::firstOrCreate(['nama' => 'Gaji']);
             $expense = Expense::create([
+                'branch_id' => current_branch(),
                 'tanggal' => $data['tgl_bayar'],
                 'expense_cat_id' => $catGaji->id,
                 'nominal' => $total,

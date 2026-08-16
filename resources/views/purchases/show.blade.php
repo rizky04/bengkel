@@ -4,10 +4,11 @@
 
 @section('content')
     <div class="card p-5 mb-4">
-        <div class="grid md:grid-cols-4 gap-4 text-sm">
+        <div class="grid md:grid-cols-5 gap-4 text-sm">
             <div><div class="text-gray-500">No. Pembelian</div><div class="font-mono font-medium">{{ $purchase->no }}</div></div>
             <div><div class="text-gray-500">Tanggal</div><div class="font-medium">{{ $purchase->tgl?->format('d/m/Y') }}</div></div>
             <div><div class="text-gray-500">Supplier</div><div class="font-medium">{{ $purchase->supplier?->nama ?? '-' }}</div></div>
+            <div><div class="text-gray-500">Status</div><div><span class="badge {{ $purchase->status === 'lunas' ? 'badge-green' : 'badge-yellow' }}">{{ $purchase->status === 'lunas' ? 'Lunas' : 'Belum Lunas' }}</span></div></div>
             <div><div class="text-gray-500">Total</div><div class="font-bold text-brand">{{ rupiah($purchase->total) }}</div></div>
         </div>
     </div>
@@ -36,12 +37,24 @@
                 </tfoot>
             </table>
 
-            <div class="flex gap-2 pt-4 border-t mt-4">
+            <div class="flex flex-wrap gap-2 pt-4 border-t mt-4 items-start" x-data="{ open: false }">
                 <a href="{{ route('purchases.index') }}" class="btn-secondary">Kembali</a>
-                <form method="POST" action="{{ route('purchases.destroy', $purchase) }}"
-                      data-confirm="Batalkan pembelian {{ $purchase->no }}? Stok akan dikurangi kembali.">
+                @if (auth()->user()->canAccess('purchases_edit'))
+                    <a href="{{ route('purchases.edit', $purchase) }}" class="btn-secondary">✎ Edit</a>
+                    @if ($purchase->status !== 'lunas')
+                        <form method="POST" action="{{ route('purchases.paid', $purchase) }}" data-confirm="Tandai pembelian ini lunas?">
+                            @csrf @method('PATCH')
+                            <button class="btn-secondary">Tandai Lunas</button>
+                        </form>
+                    @endif
+                @endif
+                <button type="button" @click="open = true" x-show="!open" class="btn-danger">Batalkan Pembelian</button>
+                <form x-show="open" x-cloak method="POST" action="{{ route('purchases.destroy', $purchase) }}"
+                      data-confirm="Batalkan pembelian {{ $purchase->no }}? Stok dikurangi kembali." class="flex gap-2 items-center">
                     @csrf @method('DELETE')
-                    <button class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm">Batalkan Pembelian</button>
+                    <input name="alasan_batal" required placeholder="Alasan pembatalan…" class="form-input">
+                    <button class="btn-danger">Ya, Batalkan</button>
+                    <button type="button" @click="open = false" class="btn-secondary">Batal</button>
                 </form>
             </div>
         </div>

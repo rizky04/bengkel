@@ -26,6 +26,7 @@
                 @include('partials.field', ['name' => 'warna', 'label' => 'Warna', 'value' => $vehicle->warna])
                 @include('partials.field', ['name' => 'no_rangka', 'label' => 'No. Rangka', 'value' => $vehicle->no_rangka])
                 @include('partials.field', ['name' => 'no_mesin', 'label' => 'No. Mesin', 'value' => $vehicle->no_mesin])
+                @include('partials.field', ['name' => 'servis_interval_hari', 'label' => 'Interval Servis (hari)', 'type' => 'number', 'value' => $vehicle->servis_interval_hari, 'placeholder' => 'kosong = default ' . \App\Models\Setting::get('servis_interval_hari', '90')])
             </div>
 
             <div class="flex gap-2 pt-2">

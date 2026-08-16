@@ -14,16 +14,17 @@ class ExpenseController extends Controller
         $dari = $request->get('dari', Carbon::now()->startOfMonth()->toDateString());
         $sampai = $request->get('sampai', Carbon::now()->toDateString());
 
-        $expenses = Expense::with('category')
+        $b = current_branch();
+        $expenses = Expense::with('category')->where('branch_id', $b)
             ->whereDate('tanggal', '>=', $dari)->whereDate('tanggal', '<=', $sampai)
             ->when($request->get('cat'), fn ($q, $v) => $q->where('expense_cat_id', $v))
             ->latest('tanggal')->latest('id')->paginate(20)->withQueryString();
 
-        $total = Expense::whereDate('tanggal', '>=', $dari)->whereDate('tanggal', '<=', $sampai)
+        $total = Expense::where('branch_id', $b)->whereDate('tanggal', '>=', $dari)->whereDate('tanggal', '<=', $sampai)
             ->when($request->get('cat'), fn ($q, $v) => $q->where('expense_cat_id', $v))->sum('nominal');
 
         $perKategori = Expense::selectRaw('expense_cat_id, SUM(nominal) as total')
-            ->whereDate('tanggal', '>=', $dari)->whereDate('tanggal', '<=', $sampai)
+            ->where('branch_id', $b)->whereDate('tanggal', '>=', $dari)->whereDate('tanggal', '<=', $sampai)
             ->groupBy('expense_cat_id')->with('category')->get();
 
         return view('expenses.index', compact('expenses', 'total', 'perKategori', 'dari', 'sampai')
@@ -40,6 +41,7 @@ class ExpenseController extends Controller
         $data = $this->validated($request);
         $data['bukti'] = $this->simpanBukti($request);
         $data['user_id'] = auth()->id();
+        $data['branch_id'] = current_branch();
 
         Expense::create($data);
 

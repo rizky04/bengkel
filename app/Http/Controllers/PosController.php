@@ -27,9 +27,30 @@ class PosController extends Controller
             'mekaniks' => User::whereIn('role', ['mekanik', 'admin'])->where('aktif', true)->orderBy('name')->get(['id', 'name']),
             'parts' => Part::withStok()->orderBy('nama')->get(['id', 'kode', 'nama', 'harga_jual', 'satuan']),
             'services' => Service::orderBy('nama')->get(['id', 'nama', 'tarif']),
-            'promos' => Promo::berlaku()->orderBy('nama')->get(),
+            // promo publik (tanpa kode) tampil di dropdown; promo ber-kode hanya lewat voucher
+            'promos' => Promo::berlaku()->where(fn ($q) => $q->whereNull('kode')->orWhere('kode', ''))->orderBy('nama')->get(),
             'pajakAktif' => (bool) Setting::get('pajak_aktif', '0'),
             'pajakPersen' => (float) Setting::get('pajak_persen', '0'),
+        ]);
+    }
+
+    /** Validasi kode voucher (dipanggil AJAX dari POS). */
+    public function voucher(Request $request)
+    {
+        $kode = trim((string) $request->get('kode'));
+        $subtotal = (float) $request->get('subtotal', 0);
+
+        $promo = Promo::berlaku()->whereRaw('LOWER(kode) = ?', [strtolower($kode)])->first();
+        if (! $kode || ! $promo) {
+            return response()->json(['ok' => false, 'msg' => 'Kode voucher tidak valid / sudah tidak berlaku.']);
+        }
+        if ($promo->min_belanja && $subtotal < $promo->min_belanja) {
+            return response()->json(['ok' => false, 'msg' => 'Belanja minimal ' . rupiah($promo->min_belanja) . ' untuk voucher ini.']);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'promo' => $promo->only(['id', 'nama', 'jenis', 'nilai', 'min_belanja']),
         ]);
     }
 
@@ -71,11 +92,21 @@ class PosController extends Controller
             // 2) diskon manual + promo
             $diskonManual = $data['diskon'] ?? 0;
             $promoPotong = 0;
+            $promoDipakai = null;
             if (! empty($data['promo_id'])) {
-                $promo = Promo::berlaku()->find($data['promo_id']);
-                if ($promo) {
+                // klaim kuota secara atomik: increment hanya bila masih berlaku & kuota belum habis
+                $now = now();
+                $klaim = Promo::whereKey($data['promo_id'])
+                    ->where('aktif', true)
+                    ->where(fn ($q) => $q->whereNull('mulai')->orWhere('mulai', '<=', $now))
+                    ->where(fn ($q) => $q->whereNull('selesai')->orWhere('selesai', '>=', $now))
+                    ->where(fn ($q) => $q->whereNull('kuota')->orWhereColumn('terpakai', '<', 'kuota'))
+                    ->increment('terpakai');
+
+                if ($klaim > 0) {
+                    $promo = Promo::find($data['promo_id']);
                     $promoPotong = $promo->potongan($subtotal - $diskonManual);
-                    $promo->increment('terpakai');
+                    $promoDipakai = $promo->id;
                 }
             }
             $diskonTotal = min($subtotal, $diskonManual + $promoPotong);
@@ -118,7 +149,7 @@ class PosController extends Controller
                 'status' => $status,
                 'subtotal' => $subtotal,
                 'diskon' => $diskonTotal,
-                'promo_id' => $data['promo_id'] ?? null,
+                'promo_id' => $promoDipakai,
                 'pajak' => $pajak,
                 'total' => $total,
                 'user_id' => auth()->id(),
@@ -154,7 +185,7 @@ class PosController extends Controller
                 if ($rec <= 0) {
                     continue;
                 }
-                $trx->payments()->create(['jumlah' => $rec, 'metode' => $p['metode'], 'tgl_bayar' => now()]);
+                $trx->payments()->create(['branch_id' => $branchId, 'jumlah' => $rec, 'metode' => $p['metode'], 'tgl_bayar' => now()]);
                 $sisa -= $rec;
             }
 

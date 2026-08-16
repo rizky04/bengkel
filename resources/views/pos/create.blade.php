@@ -189,14 +189,29 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Promo</label>
-                    <select name="promo_id" x-model="promo_id" class="w-full rounded-lg border-gray-300 text-sm">
+                    <select x-model="promo_dropdown" :disabled="voucherPromo" class="w-full rounded-lg border-gray-300 text-sm disabled:opacity-50">
                         <option value="">— tanpa promo —</option>
                         @foreach ($promos as $p)
                             <option value="{{ $p->id }}">{{ $p->nama }}</option>
                         @endforeach
                     </select>
-                    <p class="text-xs text-amber-600 mt-1" x-show="promo_id && promoPotong === 0" x-cloak>Syarat promo belum terpenuhi.</p>
+                    <p class="text-xs text-amber-600 mt-1" x-show="promo_dropdown && !voucherPromo && promoPotong === 0" x-cloak>Syarat promo belum terpenuhi.</p>
                 </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Kode Voucher</label>
+                    <div class="flex gap-1" x-show="!voucherPromo">
+                        <input type="text" x-model="voucherKode" @keydown.enter.prevent="pakaiVoucher()" placeholder="Masukkan kode…"
+                               class="flex-1 rounded-lg border-gray-300 text-sm uppercase">
+                        <button type="button" @click="pakaiVoucher()" class="px-3 py-1.5 bg-gray-800 text-white rounded-lg text-sm">Pakai</button>
+                    </div>
+                    <div x-show="voucherPromo" x-cloak class="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-3 py-1.5 text-sm">
+                        <span class="text-green-700">🎟️ <span x-text="voucherPromo?.nama"></span></span>
+                        <button type="button" @click="hapusVoucher()" class="text-red-600">✕</button>
+                    </div>
+                    <p class="text-xs text-rose-600 mt-1" x-show="voucherMsg" x-text="voucherMsg" x-cloak></p>
+                </div>
+                {{-- promo_id efektif yang dikirim ke server --}}
+                <input type="hidden" name="promo_id" :value="voucherPromo ? voucherPromo.id : promo_dropdown">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Diskon Manual (Rp)</label>
                     <input type="number" min="0" name="diskon" x-model.number="diskon" class="w-full rounded-lg border-gray-300 text-sm text-right">
@@ -271,9 +286,25 @@
             tipe: 'penjualan',
             customer_id: '', vehicle_id: '', mekanik_id: '', keluhan: '', status_servis: 'antri',
             platform_id: '{{ $platforms->firstWhere('nama', 'Kasir')->id ?? $platforms->first()->id ?? '' }}',
-            promo_id: '', diskon: 0, bayar: [{ metode: 'tunai', jumlah: null }],
+            promo_dropdown: '', diskon: 0, bayar: [{ metode: 'tunai', jumlah: null }],
+            voucherKode: '', voucherPromo: null, voucherMsg: '',
             items: [], cari: '',
             custOpen: false, custQ: '', vehOpen: false, vehQ: '', mekOpen: false, mekQ: '',
+
+            // ── Voucher ──
+            async pakaiVoucher() {
+                this.voucherMsg = '';
+                const kode = this.voucherKode.trim();
+                if (!kode) return;
+                try {
+                    const url = `{{ route('pos.voucher') }}?kode=${encodeURIComponent(kode)}&subtotal=${this.subtotal - (this.diskon || 0)}`;
+                    const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                    const data = await res.json();
+                    if (data.ok) { this.voucherPromo = data.promo; this.promo_dropdown = ''; this.voucherKode = ''; }
+                    else this.voucherMsg = data.msg;
+                } catch (e) { this.voucherMsg = 'Gagal memeriksa voucher.'; }
+            },
+            hapusVoucher() { this.voucherPromo = null; this.voucherMsg = ''; },
 
             // ── Pelanggan (searchable) ──
             get custFiltered() {
@@ -330,8 +361,11 @@
                 if (it.qty < 1) it.qty = 1;
             },
             get subtotal() { return this.items.reduce((s, it) => s + (it.qty * it.harga - (it.diskon || 0)), 0); },
+            get promoAktif() {
+                return this.voucherPromo || PROMOS.find(x => x.id == this.promo_dropdown) || null;
+            },
             get promoPotong() {
-                const p = PROMOS.find(x => x.id == this.promo_id);
+                const p = this.promoAktif;
                 if (!p) return 0;
                 const dasar = this.subtotal - (this.diskon || 0);
                 if (p.min_belanja && dasar < p.min_belanja) return 0;

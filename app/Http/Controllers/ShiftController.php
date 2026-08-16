@@ -11,7 +11,7 @@ class ShiftController extends Controller
     public function index()
     {
         $aktif = Shift::where('user_id', auth()->id())->where('status', 'buka')->latest()->first();
-        $shifts = Shift::with('user')->latest('buka_at')->paginate(15);
+        $shifts = Shift::with('user')->where('branch_id', current_branch())->latest('buka_at')->paginate(15);
 
         return view('shifts.index', compact('aktif', 'shifts'));
     }
@@ -26,6 +26,7 @@ class ShiftController extends Controller
 
         $shift = Shift::create([
             'user_id' => auth()->id(),
+            'branch_id' => current_branch(),
             'kas_awal' => $data['kas_awal'],
             'status' => 'buka',
             'buka_at' => now(),

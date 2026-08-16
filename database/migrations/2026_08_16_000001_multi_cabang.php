@@ -28,7 +28,7 @@ return new class extends Migration
         });
 
         // branch_id di tabel operasional
-        foreach (['stock_moves', 'transactions', 'purchases', 'expenses', 'shifts', 'users'] as $tbl) {
+        foreach (['stock_moves', 'transactions', 'payments', 'purchases', 'expenses', 'shifts', 'users'] as $tbl) {
             Schema::table($tbl, function (Blueprint $t) {
                 $t->foreignId('branch_id')->nullable()->after('id')->constrained()->nullOnDelete();
             });
@@ -39,7 +39,7 @@ return new class extends Migration
             'nama' => 'Pusat', 'aktif' => true, 'created_at' => now(), 'updated_at' => now(),
         ]);
 
-        foreach (['stock_moves', 'transactions', 'purchases', 'expenses', 'shifts', 'users'] as $tbl) {
+        foreach (['stock_moves', 'transactions', 'payments', 'purchases', 'expenses', 'shifts', 'users'] as $tbl) {
             DB::table($tbl)->update(['branch_id' => $pusatId]);
         }
 
@@ -58,7 +58,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('parts', fn (Blueprint $t) => $t->integer('stok')->default(0));
-        foreach (['stock_moves', 'transactions', 'purchases', 'expenses', 'shifts', 'users'] as $tbl) {
+        foreach (['stock_moves', 'transactions', 'payments', 'purchases', 'expenses', 'shifts', 'users'] as $tbl) {
             Schema::table($tbl, function (Blueprint $t) {
                 $t->dropConstrainedForeignId('branch_id');
             });

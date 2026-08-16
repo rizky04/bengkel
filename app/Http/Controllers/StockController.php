@@ -92,6 +92,37 @@ class StockController extends Controller
                 : 'Tidak ada selisih stok yang perlu disesuaikan.');
     }
 
+    public function transferForm()
+    {
+        return view('stock.transfer', [
+            'branches' => \App\Models\Branch::aktif()->orderBy('nama')->get(),
+            'parts' => Part::withStok()->orderBy('nama')->get(['id', 'kode', 'nama', 'satuan']),
+        ]);
+    }
+
+    public function transferStore(Request $request)
+    {
+        $data = $request->validate([
+            'part_id' => 'required|exists:parts,id',
+            'ke_branch_id' => 'required|exists:branches,id|different:dari',
+            'qty' => 'required|integer|min:1',
+        ]);
+
+        $dari = current_branch();
+        if ((int) $data['ke_branch_id'] === (int) $dari) {
+            return back()->with('error', 'Cabang tujuan harus berbeda.');
+        }
+
+        $part = Part::findOrFail($data['part_id']);
+        DB::transaction(function () use ($part, $dari, $data) {
+            $ket = 'Transfer ke cabang #' . $data['ke_branch_id'];
+            $part->moveStock($dari, 'out', $data['qty'], ['tipe' => 'transfer', 'keterangan' => $ket]);
+            $part->moveStock((int) $data['ke_branch_id'], 'in', $data['qty'], ['tipe' => 'transfer', 'keterangan' => 'Transfer dari cabang #' . $dari]);
+        });
+
+        return redirect()->route('stock.index')->with('success', "Transfer {$data['qty']} {$part->nama} berhasil.");
+    }
+
     /** Semua mutasi lintas part. */
     public function moves(Request $request)
     {

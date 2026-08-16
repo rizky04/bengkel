@@ -60,6 +60,22 @@
                 </div>
             </div>
 
+            {{-- Riwayat retur --}}
+            @if ($trx->returns->count())
+                <div class="card">
+                    <div class="px-5 py-3 border-b font-semibold text-gray-700">Riwayat Retur</div>
+                    <div class="p-5 space-y-1">
+                        @foreach ($trx->returns as $r)
+                            <div class="flex justify-between text-sm">
+                                <a href="{{ route('returns.show', $r) }}" class="text-brand hover:underline">{{ $r->no }}</a>
+                                <span class="text-gray-500">{{ $r->tgl?->format('d/m/Y') }} · {{ $r->alasan }}</span>
+                                <span class="text-rose-600 font-medium">− {{ rupiah($r->total) }}</span>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
             {{-- Riwayat pembayaran --}}
             @if ($trx->payments->count())
                 <div class="card">
@@ -129,12 +145,41 @@
                     </div>
                 @endif
 
-                {{-- Batal --}}
-                <form method="POST" action="{{ route('transactions.cancel', $trx) }}"
-                      data-confirm="Batalkan transaksi {{ $trx->no_nota }}? Stok akan dikembalikan.">
-                    @csrf @method('DELETE')
-                    <button class="w-full py-2 bg-white border border-rose-300 text-rose-600 rounded-lg text-sm hover:bg-rose-50">Batalkan Transaksi</button>
-                </form>
+                {{-- Edit & Retur --}}
+                @php $bolehEdit = ! $trx->terkunci() || auth()->user()->canAccess('transactions_edit'); @endphp
+                <div class="flex gap-2">
+                    @if ($bolehEdit)
+                        <a href="{{ route('transactions.edit', $trx) }}" class="btn-secondary btn-sm flex-1">✎ Edit</a>
+                    @endif
+                    @if (auth()->user()->canAccess('returns') && $trx->items->contains(fn ($it) => $it->sisaRetur() > 0))
+                        <a href="{{ route('returns.create', ['transaction' => $trx->id]) }}" class="btn-secondary btn-sm flex-1">↩ Retur</a>
+                    @endif
+                </div>
+                @if ($trx->terkunci() && ! auth()->user()->canAccess('transactions_edit'))
+                    <p class="text-xs text-gray-400">Transaksi sudah lunas — perubahan hanya oleh admin/owner.</p>
+                @endif
+
+                {{-- Batal + alasan (admin/owner) --}}
+                @if (auth()->user()->canAccess('transactions_edit'))
+                <div class="card p-4" x-data="{ open: false }">
+                    <button type="button" @click="open = true" x-show="!open"
+                            class="w-full py-2 text-rose-600 text-sm hover:underline">Batalkan Transaksi</button>
+                    <form x-show="open" x-cloak method="POST" action="{{ route('transactions.cancel', $trx) }}"
+                          data-confirm="Batalkan transaksi {{ $trx->no_nota }}? Stok dikembalikan." class="space-y-2">
+                        @csrf @method('DELETE')
+                        <input name="alasan_batal" required placeholder="Alasan pembatalan…" class="form-input">
+                        <div class="flex gap-2">
+                            <button class="btn-danger btn-sm flex-1">Ya, Batalkan</button>
+                            <button type="button" @click="open = false" class="btn-secondary btn-sm">Batal</button>
+                        </div>
+                    </form>
+                </div>
+                @endif
+            @else
+                <div class="card p-4 bg-rose-50 border-rose-200 text-sm">
+                    <span class="text-rose-700 font-medium">Dibatalkan.</span>
+                    @if ($trx->alasan_batal)<div class="text-rose-600 mt-1">Alasan: {{ $trx->alasan_batal }}</div>@endif
+                </div>
             @endif
 
             <a href="{{ route('transactions.index') }}" class="block text-center py-2 bg-gray-100 rounded-lg text-sm">← Daftar Transaksi</a>

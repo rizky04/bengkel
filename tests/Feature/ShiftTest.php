@@ -19,7 +19,7 @@ class ShiftTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->user = User::create(['name' => 'Kasir', 'email' => 'k@b.test', 'password' => bcrypt('x'), 'role' => 'admin', 'aktif' => true]);
+        $this->user = User::create(['name' => 'Kasir', 'email' => 'k@b.test', 'password' => bcrypt('x'), 'role' => 'admin', 'aktif' => true, 'branch_id' => $this->branch()->id]);
         $this->actingAs($this->user);
     }
 
@@ -37,7 +37,7 @@ class ShiftTest extends TestCase
     {
         // jual tunai 55rb dalam shift
         $platform = Platform::create(['nama' => 'Kasir']);
-        $part = Part::create(['kode' => 'P1', 'nama' => 'Oli', 'satuan' => 'pcs', 'harga_beli' => 40000, 'harga_jual' => 55000, 'stok' => 10, 'stok_min' => 1]);
+        $part = $this->makePart(['kode' => 'P1', 'nama' => 'Oli', 'stok_min' => 1], stok: 10);
 
         $this->post(route('shifts.store'), ['kas_awal' => 100000]);
         $shift = Shift::first();

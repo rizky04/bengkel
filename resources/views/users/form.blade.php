@@ -12,7 +12,8 @@
                 @include('partials.field', ['name' => 'name', 'label' => 'Nama', 'value' => $user->name, 'required' => true])
                 @include('partials.field', ['name' => 'email', 'label' => 'Email', 'type' => 'email', 'value' => $user->email, 'required' => true])
                 @include('partials.field', ['name' => 'password', 'label' => $user->exists ? 'Password (kosongkan jika tidak diubah)' : 'Password', 'type' => 'password', 'required' => ! $user->exists])
-                @include('partials.field', ['name' => 'role', 'label' => 'Role', 'type' => 'select', 'value' => $user->role ?? 'kasir', 'options' => ['admin' => 'Admin', 'kasir' => 'Kasir', 'mekanik' => 'Mekanik']])
+                @include('partials.field', ['name' => 'role', 'label' => 'Role', 'type' => 'select', 'value' => $user->role ?? 'kasir', 'options' => $roles->pluck('nama', 'key')])
+                @include('partials.field', ['name' => 'branch_id', 'label' => 'Cabang', 'type' => 'select', 'value' => $user->branch_id, 'placeholder' => '— pilih cabang —', 'options' => $branches->pluck('nama', 'id')])
             </div>
 
             <label class="flex items-center gap-2 text-sm">

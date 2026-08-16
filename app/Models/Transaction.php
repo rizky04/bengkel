@@ -72,6 +72,23 @@ class Transaction extends Model
         return $this->belongsTo(Promo::class);
     }
 
+    public function returns()
+    {
+        return $this->hasMany(SalesReturn::class);
+    }
+
+    /** Total nilai yang sudah diretur. */
+    public function totalRetur(): float
+    {
+        return (float) $this->returns()->sum('total');
+    }
+
+    /** Terkunci = sudah final (lunas / dibatalkan). Edit hanya oleh admin/owner. */
+    public function terkunci(): bool
+    {
+        return in_array($this->status, ['lunas', 'batal'], true);
+    }
+
     public function getDibayarAttribute(): float
     {
         return (float) $this->payments->sum('jumlah');

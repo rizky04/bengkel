@@ -14,13 +14,15 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        $pusat = \App\Models\Branch::firstOrCreate(['nama' => 'Pusat'], ['aktif' => true]);
+
         User::updateOrCreate(
             ['email' => 'admin@bengkel.test'],
-            ['name' => 'Admin', 'password' => Hash::make('password'), 'role' => 'admin', 'aktif' => true]
+            ['name' => 'Admin', 'password' => Hash::make('password'), 'role' => 'admin', 'aktif' => true, 'branch_id' => $pusat->id]
         );
         User::updateOrCreate(
             ['email' => 'kasir@bengkel.test'],
-            ['name' => 'Kasir', 'password' => Hash::make('password'), 'role' => 'kasir', 'aktif' => true]
+            ['name' => 'Kasir', 'password' => Hash::make('password'), 'role' => 'kasir', 'aktif' => true, 'branch_id' => $pusat->id]
         );
 
         foreach (['Kasir', 'Shopee', 'Tokopedia', 'WhatsApp'] as $p) {
@@ -45,6 +47,8 @@ class DatabaseSeeder extends Seeder
             'pajak_aktif' => '0',
             'pajak_persen' => '0',
             'nota_prefix' => 'INV',
+            'nota_lebar' => '58',
+            'servis_interval_hari' => '90',
         ];
         foreach ($settings as $k => $v) {
             Setting::put($k, $v);

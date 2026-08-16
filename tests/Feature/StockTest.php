@@ -21,19 +21,16 @@ class StockTest extends TestCase
 
         $user = User::create([
             'name' => 'Admin', 'email' => 'a@b.test', 'password' => bcrypt('x'),
-            'role' => 'admin', 'aktif' => true,
+            'role' => 'admin', 'aktif' => true, 'branch_id' => $this->branch()->id,
         ]);
         $this->actingAs($user);
 
-        $this->part = Part::create([
-            'kode' => 'SP1', 'nama' => 'Oli', 'satuan' => 'pcs',
-            'harga_beli' => 40000, 'harga_jual' => 50000, 'stok' => 0, 'stok_min' => 2,
-        ]);
+        $this->part = $this->makePart(['kode' => 'SP1', 'nama' => 'Oli', 'harga_jual' => 50000]);
     }
 
     public function test_stok_masuk_tercatat_di_kartu_stok(): void
     {
-        $this->part->moveStock('in', 10, ['tipe' => 'test']);
+        $this->part->moveStock($this->branch->id, 'in', 10, ['tipe' => 'test']);
 
         $this->assertSame(10, $this->part->fresh()->stok);
 
@@ -45,8 +42,8 @@ class StockTest extends TestCase
 
     public function test_stok_keluar_mengurangi_stok(): void
     {
-        $this->part->moveStock('in', 10);
-        $this->part->moveStock('out', 3);
+        $this->part->moveStock($this->branch->id, 'in', 10);
+        $this->part->moveStock($this->branch->id, 'out', 3);
 
         $this->assertSame(7, $this->part->fresh()->stok);
         $this->assertSame(-3, $this->part->stockMoves()->latest('id')->first()->qty);
@@ -54,12 +51,12 @@ class StockTest extends TestCase
 
     public function test_pengeluaran_melebihi_stok_ditolak_tanpa_mengubah_data(): void
     {
-        $this->part->moveStock('in', 5);
+        $this->part->moveStock($this->branch->id, 'in', 5);
 
         $this->expectException(\RuntimeException::class);
 
         try {
-            $this->part->moveStock('out', 8);
+            $this->part->moveStock($this->branch->id, 'out', 8);
         } finally {
             $this->assertSame(5, $this->part->fresh()->stok);
             // mutasi yang gagal tidak boleh tercatat
@@ -69,7 +66,7 @@ class StockTest extends TestCase
 
     public function test_opname_mencatat_selisih_sebagai_penyesuaian(): void
     {
-        $this->part->moveStock('in', 10);
+        $this->part->moveStock($this->branch->id, 'in', 10);
 
         $this->post(route('stock.opname.store'), [
             'fisik' => [$this->part->id => 7],
@@ -86,7 +83,7 @@ class StockTest extends TestCase
 
     public function test_opname_melewati_baris_kosong(): void
     {
-        $this->part->moveStock('in', 10);
+        $this->part->moveStock($this->branch->id, 'in', 10);
 
         $this->post(route('stock.opname.store'), ['fisik' => [$this->part->id => null]]);
 
@@ -118,7 +115,7 @@ class StockTest extends TestCase
         ]);
         $this->assertSame(5, $this->part->fresh()->stok);
 
-        $this->delete(route('purchases.destroy', Purchase::first()));
+        $this->delete(route('purchases.destroy', Purchase::first()), ['alasan_batal' => 'uji batal']);
 
         $this->assertSame(0, $this->part->fresh()->stok);
         $this->assertSame(0, Purchase::count());

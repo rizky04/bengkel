@@ -64,6 +64,7 @@ class VehicleController extends Controller
             'no_rangka' => 'nullable|string|max:100',
             'no_mesin' => 'nullable|string|max:100',
             'warna' => 'nullable|string|max:50',
+            'servis_interval_hari' => 'nullable|integer|min:1|max:1000',
         ]);
     }
 }

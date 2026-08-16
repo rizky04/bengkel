@@ -11,8 +11,12 @@
             <div class="font-medium">{{ \Illuminate\Support\Carbon::parse($dari)->format('d M Y') }} – {{ \Illuminate\Support\Carbon::parse($sampai)->format('d M Y') }}</div>
         </div>
         <div class="p-5 space-y-2 text-sm">
-            <div class="flex justify-between py-1"><span class="text-gray-600">Pendapatan (omzet)</span><span class="font-medium">{{ rupiah($pendapatan) }}</span></div>
-            <div class="flex justify-between py-1"><span class="text-gray-600">HPP (harga beli part terjual)</span><span class="text-rose-600">− {{ rupiah($hpp) }}</span></div>
+            <div class="flex justify-between py-1"><span class="text-gray-600">Penjualan (bruto)</span><span class="font-medium">{{ rupiah($bruto) }}</span></div>
+            @if ($returTotal > 0)
+                <div class="flex justify-between py-1"><span class="text-gray-600">Retur penjualan</span><span class="text-rose-600">− {{ rupiah($returTotal) }}</span></div>
+                <div class="flex justify-between py-1"><span class="text-gray-600">Pendapatan bersih</span><span class="font-medium">{{ rupiah($pendapatan) }}</span></div>
+            @endif
+            <div class="flex justify-between py-1"><span class="text-gray-600">HPP (harga beli part terjual, net retur)</span><span class="text-rose-600">− {{ rupiah($hpp) }}</span></div>
             <div class="flex justify-between py-2 border-t border-b font-semibold"><span>Laba Kotor</span><span class="text-brand">{{ rupiah($labaKotor) }}</span></div>
 
             <div class="pt-2 text-gray-500 uppercase text-xs tracking-wider">Pengeluaran Operasional</div>

@@ -16,13 +16,13 @@ class ImportExportTest extends TestCase
     {
         parent::setUp();
         $this->actingAs(User::create([
-            'name' => 'Admin', 'email' => 'a@b.test', 'password' => bcrypt('x'), 'role' => 'admin', 'aktif' => true,
+            'name' => 'Admin', 'email' => 'a@b.test', 'password' => bcrypt('x'), 'role' => 'admin', 'aktif' => true, 'branch_id' => $this->branch()->id,
         ]));
     }
 
     public function test_export_sparepart_menghasilkan_csv(): void
     {
-        Part::create(['kode' => 'SP1', 'nama' => 'Oli', 'satuan' => 'pcs', 'harga_beli' => 40000, 'harga_jual' => 55000, 'stok' => 5, 'stok_min' => 2]);
+        $this->makePart(['kode' => 'SP1', 'nama' => 'Oli'], stok: 5);
 
         $res = $this->get(route('parts.export'));
         $res->assertOk();
@@ -51,7 +51,7 @@ class ImportExportTest extends TestCase
 
     public function test_import_memperbarui_barang_tanpa_mengubah_stok(): void
     {
-        $part = Part::create(['kode' => 'SP1', 'nama' => 'Oli', 'satuan' => 'pcs', 'harga_beli' => 40000, 'harga_jual' => 55000, 'stok' => 10, 'stok_min' => 2]);
+        $part = $this->makePart(['kode' => 'SP1', 'nama' => 'Oli'], stok: 10);
 
         $csv = "kode,nama,kategori,satuan,harga_beli,harga_jual,stok,stok_min,lokasi_rak\n"
              . "SP1,Oli Mesin,,liter,45000,60000,999,5,\n";

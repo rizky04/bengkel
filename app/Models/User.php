@@ -10,16 +10,35 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password', 'role', 'aktif'])]
+#[Fillable(['name', 'email', 'password', 'role', 'aktif', 'branch_id'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
+    }
+
+    /** Model role (berdasarkan slug users.role), di-cache per request. */
+    public function roleModel(): ?Role
+    {
+        return $this->relationLoaded('roleModel')
+            ? $this->getRelation('roleModel')
+            : $this->setRelation('roleModel', Role::with('permissions')->where('key', $this->role)->first())->getRelation('roleModel');
+    }
+
     public function isAdmin(): bool
     {
-        return $this->role === 'admin';
+        return (bool) $this->roleModel()?->is_admin;
+    }
+
+    /** Boleh mengakses menu/izin tertentu? Admin selalu boleh. */
+    public function canAccess(string $permission): bool
+    {
+        return (bool) $this->roleModel()?->hasPermission($permission);
     }
 
     public function isKasir(): bool

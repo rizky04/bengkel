@@ -61,7 +61,7 @@ class PartController extends Controller
                     $update++;
                 } else {
                     $stokAwal = (int) ($r[6] ?? 0);
-                    $part = Part::create([...$data, 'kode' => $kode, 'stok' => 0]);
+                    $part = Part::create([...$data, 'kode' => $kode]);
                     if ($stokAwal > 0) {
                         $part->moveStock(current_branch(), 'in', $stokAwal, ['tipe' => 'import', 'keterangan' => 'Stok awal (import)']);
                     }

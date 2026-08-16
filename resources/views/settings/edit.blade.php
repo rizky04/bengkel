@@ -15,6 +15,7 @@
                     @include('partials.field', ['name' => 'hp', 'label' => 'No. HP', 'value' => \App\Models\Setting::get('hp')])
                     @include('partials.field', ['name' => 'nota_prefix', 'label' => 'Prefix Nota', 'value' => \App\Models\Setting::get('nota_prefix', 'INV'), 'required' => true])
                     @include('partials.field', ['name' => 'nota_lebar', 'label' => 'Lebar Kertas Printer', 'type' => 'select', 'value' => \App\Models\Setting::get('nota_lebar', '58'), 'options' => ['58' => '58mm (mini/Bluetooth)', '80' => '80mm']])
+                    @include('partials.field', ['name' => 'servis_interval_hari', 'label' => 'Interval Servis Default (hari)', 'type' => 'number', 'value' => \App\Models\Setting::get('servis_interval_hari', '90'), 'required' => true])
                 </div>
                 <div class="grid grid-cols-2 gap-4 items-end">
                     <label class="flex items-center gap-2 text-sm pb-2">

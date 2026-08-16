@@ -27,6 +27,7 @@ class SettingController extends Controller
             'nota_lebar' => 'required|in:58,80',
             'pajak_aktif' => 'nullable|boolean',
             'pajak_persen' => 'nullable|numeric|min:0|max:100',
+            'servis_interval_hari' => 'required|integer|min:1|max:1000',
         ]);
 
         Setting::put('nama_bengkel', $data['nama_bengkel']);
@@ -36,6 +37,7 @@ class SettingController extends Controller
         Setting::put('nota_lebar', $data['nota_lebar']);
         Setting::put('pajak_aktif', $request->boolean('pajak_aktif') ? '1' : '0');
         Setting::put('pajak_persen', (string) ($data['pajak_persen'] ?? 0));
+        Setting::put('servis_interval_hari', (string) $data['servis_interval_hari']);
 
         return back()->with('success', 'Pengaturan disimpan.');
     }

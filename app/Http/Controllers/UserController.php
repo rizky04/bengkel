@@ -18,7 +18,7 @@ class UserController extends Controller
 
     public function create()
     {
-        return view('users.form', ['user' => new User(['role' => 'kasir', 'aktif' => true])]);
+        return view('users.form', ['user' => new User(['role' => 'kasir', 'aktif' => true]), 'branches' => \App\Models\Branch::orderBy('nama')->get(), 'roles' => \App\Models\Role::orderBy('nama')->get()]);
     }
 
     public function store(Request $request)
@@ -27,7 +27,8 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:6',
-            'role' => 'required|in:admin,kasir,mekanik',
+            'role' => 'required|exists:roles,key',
+            'branch_id' => 'nullable|exists:branches,id',
             'aktif' => 'nullable|boolean',
         ]);
         $data['password'] = Hash::make($data['password']);
@@ -41,7 +42,7 @@ class UserController extends Controller
 
     public function edit(User $user)
     {
-        return view('users.form', compact('user'));
+        return view('users.form', compact('user') + ['branches' => \App\Models\Branch::orderBy('nama')->get(), 'roles' => \App\Models\Role::orderBy('nama')->get()]);
     }
 
     public function update(Request $request, User $user)
@@ -50,7 +51,8 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($user->id)],
             'password' => 'nullable|string|min:6',
-            'role' => 'required|in:admin,kasir,mekanik',
+            'role' => 'required|exists:roles,key',
+            'branch_id' => 'nullable|exists:branches,id',
             'aktif' => 'nullable|boolean',
         ]);
 

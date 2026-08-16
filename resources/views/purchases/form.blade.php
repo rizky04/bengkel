@@ -7,7 +7,7 @@
     @csrf
 
     <div class="card p-5 mb-4">
-        <div class="grid md:grid-cols-3 gap-4">
+        <div class="grid md:grid-cols-4 gap-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">No. Pembelian</label>
                 <div class="px-3 py-2 bg-gray-50 rounded-lg text-sm font-mono">{{ $noBaru }}</div>
@@ -17,6 +17,7 @@
                 'placeholder' => '— tanpa supplier —', 'options' => $suppliers->pluck('nama', 'id'),
             ])
             @include('partials.field', ['name' => 'tgl', 'label' => 'Tanggal', 'type' => 'date', 'value' => date('Y-m-d'), 'required' => true])
+            @include('partials.field', ['name' => 'status', 'label' => 'Status Bayar', 'type' => 'select', 'value' => 'lunas', 'options' => ['lunas' => 'Lunas', 'belum_lunas' => 'Belum Lunas (hutang)']])
         </div>
     </div>
 

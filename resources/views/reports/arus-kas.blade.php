@@ -23,7 +23,8 @@
         <div class="card p-5">
             <div class="font-semibold text-gray-700 mb-3">Kas Keluar</div>
             <div class="flex justify-between py-1.5 text-sm border-b border-gray-100"><span class="text-gray-600">Pengeluaran operasional (+ gaji)</span><span class="font-medium">{{ rupiah($pengeluaran) }}</span></div>
-            <div class="flex justify-between py-1.5 text-sm"><span class="text-gray-600">Pembelian sparepart</span><span class="font-medium">{{ rupiah($pembelian) }}</span></div>
+            <div class="flex justify-between py-1.5 text-sm border-b border-gray-100"><span class="text-gray-600">Pembelian sparepart</span><span class="font-medium">{{ rupiah($pembelian) }}</span></div>
+            <div class="flex justify-between py-1.5 text-sm"><span class="text-gray-600">Refund retur</span><span class="font-medium">{{ rupiah($refundRetur) }}</span></div>
         </div>
     </div>
 @endsection

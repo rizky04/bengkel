@@ -27,13 +27,10 @@ class PosTest extends TestCase
 
         $this->actingAs(User::create([
             'name' => 'Kasir', 'email' => 'k@b.test', 'password' => bcrypt('x'),
-            'role' => 'admin', 'aktif' => true,
+            'role' => 'admin', 'aktif' => true, 'branch_id' => $this->branch()->id,
         ]));
 
-        $this->part = Part::create([
-            'kode' => 'SP1', 'nama' => 'Oli', 'satuan' => 'pcs',
-            'harga_beli' => 40000, 'harga_jual' => 55000, 'stok' => 10, 'stok_min' => 2,
-        ]);
+        $this->part = $this->makePart(['kode' => 'SP1', 'nama' => 'Oli'], stok: 10);
         $this->service = Service::create(['nama' => 'Ganti Oli', 'tarif' => 20000]);
         $this->platform = Platform::create(['nama' => 'Kasir']);
     }
@@ -188,7 +185,7 @@ class PosTest extends TestCase
         $this->assertSame(7, $this->part->fresh()->stok);
 
         $trx = Transaction::first();
-        $this->delete(route('transactions.cancel', $trx));
+        $this->delete(route('transactions.cancel', $trx), ['alasan_batal' => 'uji batal']);
 
         $this->assertSame('batal', $trx->fresh()->status);
         $this->assertSame(10, $this->part->fresh()->stok);

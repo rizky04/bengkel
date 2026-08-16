@@ -12,6 +12,7 @@
             ['reports.piutang', 'Piutang / Bon', 'Transaksi belum lunas', 'users'],
             ['reports.mekanik', 'Produktivitas Mekanik', 'Order & nilai jasa per mekanik', 'wrench'],
             ['reports.kasir', 'Tutup Kasir', 'Rekap kas harian per metode', 'clipboard'],
+            ['reports.konsolidasi', 'Konsolidasi', 'Laba-rugi gabungan semua cabang', 'store'],
         ];
     @endphp
     <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">

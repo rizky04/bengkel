@@ -20,7 +20,7 @@ class FinanceTest extends TestCase
     {
         parent::setUp();
         $this->actingAs(User::create([
-            'name' => 'Admin', 'email' => 'a@b.test', 'password' => bcrypt('x'), 'role' => 'admin', 'aktif' => true,
+            'name' => 'Admin', 'email' => 'a@b.test', 'password' => bcrypt('x'), 'role' => 'admin', 'aktif' => true, 'branch_id' => $this->branch()->id,
         ]));
     }
 
@@ -70,7 +70,7 @@ class FinanceTest extends TestCase
     public function test_laba_rugi_menghitung_hpp_dan_pengeluaran(): void
     {
         $platform = Platform::create(['nama' => 'Kasir']);
-        $part = Part::create(['kode' => 'P1', 'nama' => 'Oli', 'satuan' => 'pcs', 'harga_beli' => 40000, 'harga_jual' => 55000, 'stok' => 10, 'stok_min' => 1]);
+        $part = $this->makePart(['kode' => 'P1', 'nama' => 'Oli', 'stok_min' => 1], stok: 10);
 
         // jual 2 oli @55rb → omzet 110rb, HPP 80rb
         $this->post(route('pos.store'), [
@@ -79,7 +79,7 @@ class FinanceTest extends TestCase
         ]);
 
         // pengeluaran 30rb
-        Expense::create(['tanggal' => now()->toDateString(), 'nominal' => 30000, 'metode' => 'tunai', 'keterangan' => 'listrik']);
+        Expense::create(['branch_id' => $this->branch()->id, 'tanggal' => now()->toDateString(), 'nominal' => 30000, 'metode' => 'tunai', 'keterangan' => 'listrik']);
 
         $res = $this->get(route('reports.laba-rugi'));
         $res->assertOk();
@@ -93,12 +93,12 @@ class FinanceTest extends TestCase
     public function test_arus_kas_masuk_dari_pembayaran(): void
     {
         $platform = Platform::create(['nama' => 'Kasir']);
-        $part = Part::create(['kode' => 'P1', 'nama' => 'Oli', 'satuan' => 'pcs', 'harga_beli' => 40000, 'harga_jual' => 55000, 'stok' => 10, 'stok_min' => 1]);
+        $part = $this->makePart(['kode' => 'P1', 'nama' => 'Oli', 'stok_min' => 1], stok: 10);
         $this->post(route('pos.store'), [
             'tipe' => 'penjualan', 'platform_id' => $platform->id, 'metode' => 'tunai', 'bayar' => 55000,
             'items' => [['tipe' => 'part', 'ref_id' => $part->id, 'nama' => 'Oli', 'qty' => 1, 'harga' => 55000, 'diskon' => 0]],
         ]);
-        Expense::create(['tanggal' => now()->toDateString(), 'nominal' => 20000, 'metode' => 'tunai', 'keterangan' => 'x']);
+        Expense::create(['branch_id' => $this->branch()->id, 'tanggal' => now()->toDateString(), 'nominal' => 20000, 'metode' => 'tunai', 'keterangan' => 'x']);
 
         $res = $this->get(route('reports.arus-kas'));
         $res->assertViewHas('kasMasuk', 55000.0);
