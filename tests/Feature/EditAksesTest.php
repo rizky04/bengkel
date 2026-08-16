@@ -63,22 +63,7 @@ class EditAksesTest extends TestCase
         $this->assertSame(3, $trx->fresh()->items->first()->qty);
     }
 
-    public function test_kasir_tidak_boleh_edit_transaksi_lunas(): void
-    {
-        $trx = $this->jual('55000'); // lunas → terkunci
-        $this->assertTrue($trx->terkunci());
-
-        $this->actingAs($this->kasir)->get(route('transactions.edit', $trx))->assertForbidden();
-        $this->actingAs($this->kasir)->put(route('transactions.update', $trx), $this->payload($trx, 3))->assertForbidden();
-    }
-
-    public function test_kasir_tidak_boleh_membatalkan(): void
-    {
-        $trx = $this->jual('0');
-        $this->actingAs($this->kasir)
-            ->delete(route('transactions.cancel', $trx), ['alasan_batal' => 'x'])
-            ->assertForbidden();
-    }
+    // Perilaku transaksi terkunci untuk kasir (jadi pengajuan) diuji di ApprovalTest.
 
     public function test_admin_boleh_edit_transaksi_lunas(): void
     {

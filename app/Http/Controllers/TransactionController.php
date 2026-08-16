@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\EditRequest;
 use App\Models\Part;
 use App\Models\Transaction;
+use App\Support\TransactionEditor;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Arr;
+use Illuminate\Validation\Rule;
 
 class TransactionController extends Controller
 {
@@ -44,8 +47,9 @@ class TransactionController extends Controller
     public function show(Transaction $transaction)
     {
         $transaction->load('items.returnItems', 'payments', 'customer', 'vehicle', 'mekanik', 'kasir', 'platform', 'promo', 'returns');
+        $pending = $transaction->pengajuanPending()->with('pengaju')->latest('id')->first();
 
-        return view('transactions.show', ['trx' => $transaction]);
+        return view('transactions.show', ['trx' => $transaction, 'pending' => $pending]);
     }
 
     public function nota(Transaction $transaction)
@@ -132,7 +136,7 @@ class TransactionController extends Controller
     public function update(Request $request, Transaction $transaction)
     {
         abort_if($transaction->status === 'batal', 404);
-        $this->pastikanBolehEdit($transaction);
+        $proposal = $this->perluApproval($transaction);
 
         $data = $request->validate([
             'platform_id' => 'nullable|exists:platforms,id',
@@ -143,6 +147,7 @@ class TransactionController extends Controller
             'catatan_mekanik' => 'nullable|string',
             'diskon' => 'nullable|numeric|min:0',
             'tgl' => 'required|date',
+            'alasan' => [Rule::requiredIf($proposal), 'nullable', 'string', 'max:255'],
             'items' => 'required|array|min:1',
             'items.*.id' => 'nullable|integer',
             'items.*.tipe' => 'required|in:jasa,part',
@@ -151,87 +156,25 @@ class TransactionController extends Controller
             'items.*.qty' => 'required|integer|min:1',
             'items.*.harga' => 'required|numeric|min:0',
             'items.*.diskon' => 'nullable|numeric|min:0',
-        ], [], ['items' => 'item transaksi']);
+        ], [], ['items' => 'item transaksi', 'alasan' => 'alasan perubahan']);
 
-        $branchId = $transaction->branch_id ?? current_branch();
-        $perubahan = [];
+        // Terkunci & bukan admin → ajukan, jangan terapkan.
+        if ($proposal) {
+            EditRequest::create([
+                'transaction_id' => $transaction->id,
+                'branch_id' => $transaction->branch_id ?? current_branch(),
+                'jenis' => 'edit',
+                'payload' => Arr::except($data, 'alasan'),
+                'alasan' => $data['alasan'],
+                'user_id' => auth()->id(),
+            ]);
+            \App\Models\ActivityLog::catat('ajukan_edit', "{$transaction->no_nota} — {$data['alasan']}", 'transaction', $transaction->id);
+
+            return redirect()->route('transactions.show', $transaction)->with('success', 'Perubahan diajukan, menunggu persetujuan admin.');
+        }
 
         try {
-            DB::transaction(function () use ($transaction, $data, $branchId, &$perubahan) {
-                $lama = $transaction->items()->get()->keyBy('id');
-                $qtyLama = $this->qtyPerPart($lama);
-                $dikirimId = collect($data['items'])->pluck('id')->filter()->map(fn ($v) => (int) $v)->all();
-
-                // update / tambah item
-                foreach ($data['items'] as $row) {
-                    $sub = $row['qty'] * $row['harga'] - ($row['diskon'] ?? 0);
-                    $atr = ['tipe' => $row['tipe'], 'ref_id' => $row['ref_id'] ?? null, 'nama' => $row['nama'],
-                        'qty' => $row['qty'], 'harga' => $row['harga'], 'diskon' => $row['diskon'] ?? 0, 'subtotal' => $sub];
-
-                    if (! empty($row['id']) && $item = $lama->get((int) $row['id'])) {
-                        $diretur = $item->qtyDiretur();
-                        if ($diretur > 0 && $row['qty'] < $diretur) {
-                            throw new \RuntimeException("{$item->nama} sudah diretur {$diretur}, qty tak boleh kurang dari itu.");
-                        }
-                        if ($item->qty != $row['qty']) {
-                            $perubahan[] = "{$item->nama} {$item->qty}→{$row['qty']}";
-                        } elseif ((float) $item->harga != (float) $row['harga'] || (float) $item->diskon != (float) ($row['diskon'] ?? 0)) {
-                            $perubahan[] = "harga {$item->nama}";
-                        }
-                        $item->update($atr);
-                    } else {
-                        $transaction->items()->create($atr);
-                        $perubahan[] = "+{$row['nama']}×{$row['qty']}";
-                    }
-                }
-
-                // hapus item yang tak dikirim lagi
-                foreach ($lama as $id => $item) {
-                    if (! in_array($id, $dikirimId, true)) {
-                        if ($item->returnItems()->exists()) {
-                            throw new \RuntimeException("{$item->nama} sudah diretur, tak bisa dihapus.");
-                        }
-                        $item->delete();
-                        $perubahan[] = "−{$item->nama}×{$item->qty}";
-                    }
-                }
-
-                // sesuaikan stok = delta per part (in bila berkurang, out bila bertambah)
-                $qtyBaru = $this->qtyPerPart($transaction->items()->get());
-                foreach (array_unique(array_merge(array_keys($qtyLama), array_keys($qtyBaru))) as $ref) {
-                    $delta = ($qtyBaru[$ref] ?? 0) - ($qtyLama[$ref] ?? 0);
-                    if ($delta === 0) {
-                        continue;
-                    }
-                    Part::find($ref)?->moveStock($branchId, $delta > 0 ? 'out' : 'in', abs($delta), [
-                        'tipe' => 'transaction_edit', 'id' => $transaction->id, 'keterangan' => 'Edit ' . $transaction->no_nota,
-                    ]);
-                }
-
-                // hitung ulang nominal
-                $subtotal = (float) $transaction->items()->sum('subtotal');
-                $diskonTotal = min($subtotal, (float) ($data['diskon'] ?? 0));
-                $dpp = $subtotal - $diskonTotal;
-                $pajakPersen = \App\Models\Setting::get('pajak_aktif', '0') === '1' ? (float) \App\Models\Setting::get('pajak_persen', '0') : 0;
-                $pajak = round($dpp * $pajakPersen / 100, 2);
-                $total = $dpp + $pajak;
-
-                $transaction->fill([
-                    'platform_id' => $data['platform_id'] ?? null,
-                    'customer_id' => $data['customer_id'] ?? null,
-                    'vehicle_id' => $data['vehicle_id'] ?? null,
-                    'mekanik_id' => $data['mekanik_id'] ?? null,
-                    'keluhan' => $data['keluhan'] ?? null,
-                    'catatan_mekanik' => $data['catatan_mekanik'] ?? null,
-                    'tgl' => $data['tgl'],
-                    'subtotal' => $subtotal, 'diskon' => $diskonTotal, 'pajak' => $pajak, 'total' => $total,
-                ]);
-                // turunkan status bila jadi belum lunas
-                if ($transaction->status === 'lunas' && $transaction->dibayar < $total) {
-                    $transaction->status = 'selesai';
-                }
-                $transaction->save();
-            });
+            $perubahan = TransactionEditor::apply($transaction, $data);
         } catch (\RuntimeException $e) {
             return back()->withInput()->with('error', $e->getMessage());
         }
@@ -242,32 +185,6 @@ class TransactionController extends Controller
         return redirect()->route('transactions.show', $transaction)->with('success', 'Transaksi diperbarui.');
     }
 
-    /**
-     * Skema "open ticket": transaksi masih terbuka boleh diedit kasir;
-     * yang sudah lunas hanya admin/owner (izin transactions_edit).
-     */
-    private function pastikanBolehEdit(Transaction $transaction): void
-    {
-        abort_if(
-            $transaction->terkunci() && ! auth()->user()->canAccess('transactions_edit'),
-            403,
-            'Transaksi sudah lunas — hanya admin/owner yang dapat mengubahnya.'
-        );
-    }
-
-    /** ref_id => total qty, hanya item tipe part. */
-    private function qtyPerPart($items): array
-    {
-        $map = [];
-        foreach ($items as $it) {
-            if ($it->tipe === 'part' && $it->ref_id) {
-                $map[$it->ref_id] = ($map[$it->ref_id] ?? 0) + $it->qty;
-            }
-        }
-
-        return $map;
-    }
-
     public function cancel(Request $request, Transaction $transaction)
     {
         if ($transaction->status === 'batal') {
@@ -275,20 +192,33 @@ class TransactionController extends Controller
         }
         $data = $request->validate(['alasan_batal' => 'required|string|max:255'], [], ['alasan_batal' => 'alasan pembatalan']);
 
-        DB::transaction(function () use ($transaction, $data) {
-            // kembalikan stok part yang keluar
-            foreach ($transaction->items()->where('tipe', 'part')->whereNotNull('ref_id')->get() as $item) {
-                $part = Part::find($item->ref_id);
-                $part?->moveStock($transaction->branch_id ?? current_branch(), 'in', $item->qty, [
-                    'tipe' => 'transaction_batal', 'id' => $transaction->id,
-                    'keterangan' => 'Pembatalan ' . $transaction->no_nota,
-                ]);
-            }
-            $transaction->update(['status' => 'batal', 'alasan_batal' => $data['alasan_batal']]);
-        });
+        // Kasir → ajukan pembatalan; admin/owner → batalkan langsung.
+        if (! auth()->user()->canAccess('transactions_edit')) {
+            EditRequest::create([
+                'transaction_id' => $transaction->id,
+                'branch_id' => $transaction->branch_id ?? current_branch(),
+                'jenis' => 'batal',
+                'alasan' => $data['alasan_batal'],
+                'user_id' => auth()->id(),
+            ]);
+            \App\Models\ActivityLog::catat('ajukan_batal', "{$transaction->no_nota} — {$data['alasan_batal']}", 'transaction', $transaction->id);
+
+            return redirect()->route('transactions.show', $transaction)->with('success', 'Pembatalan diajukan, menunggu persetujuan admin.');
+        }
+
+        try {
+            TransactionEditor::cancel($transaction, $data['alasan_batal']);
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
         \App\Models\ActivityLog::catat('batal_transaksi', "{$transaction->no_nota} — {$data['alasan_batal']}", 'transaction', $transaction->id);
 
-        return redirect()->route('transactions.show', $transaction)
-            ->with('success', 'Transaksi dibatalkan, stok dikembalikan.');
+        return redirect()->route('transactions.show', $transaction)->with('success', 'Transaksi dibatalkan, stok dikembalikan.');
+    }
+
+    /** Perlu approval bila transaksi terkunci (lunas) & pengguna bukan admin/owner. */
+    private function perluApproval(Transaction $transaction): bool
+    {
+        return $transaction->terkunci() && ! auth()->user()->canAccess('transactions_edit');
     }
 }

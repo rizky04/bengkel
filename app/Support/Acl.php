@@ -39,6 +39,7 @@ class Acl
             'Hak Khusus' => [
                 'transactions_edit' => 'Edit Transaksi Lunas & Pembatalan',
                 'purchases_edit' => 'Edit & Batal Pembelian',
+                'approvals' => 'Setujui Pengajuan Perubahan',
             ],
             'Keuangan & Admin' => [
                 'promos' => 'Promo',

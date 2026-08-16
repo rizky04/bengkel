@@ -89,6 +89,17 @@ class Transaction extends Model
         return in_array($this->status, ['lunas', 'batal'], true);
     }
 
+    public function editRequests()
+    {
+        return $this->hasMany(EditRequest::class);
+    }
+
+    /** Pengajuan perubahan yang masih menunggu keputusan admin. */
+    public function pengajuanPending()
+    {
+        return $this->editRequests()->where('status', 'pending');
+    }
+
     public function getDibayarAttribute(): float
     {
         return (float) $this->payments->sum('jumlah');

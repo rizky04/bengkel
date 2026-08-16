@@ -7,6 +7,9 @@
         $badge = [
             'login' => 'badge-gray', 'transaksi_baru' => 'badge-green', 'batal_transaksi' => 'badge-red',
             'edit_transaksi' => 'badge-amber', 'retur' => 'badge-red',
+            'ajukan_edit' => 'badge-blue', 'ajukan_batal' => 'badge-blue',
+            'setujui_edit' => 'badge-green', 'setujui_batal' => 'badge-green',
+            'tolak_edit' => 'badge-red', 'tolak_batal' => 'badge-red',
             'pembelian' => 'badge-green', 'edit_pembelian' => 'badge-amber', 'batal_pembelian' => 'badge-red', 'pembelian_lunas' => 'badge-blue',
             'stok_opname' => 'badge-amber', 'bayar_gaji' => 'badge-blue', 'user_baru' => 'badge-blue',
             'buka_shift' => 'badge-green', 'tutup_shift' => 'badge-gray',

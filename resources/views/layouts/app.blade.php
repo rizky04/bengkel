@@ -52,6 +52,7 @@
                         ['stock.transfer', 'Transfer Stok', 'refresh', 'stock_transfer', ['stock.transfer*']],
                     ],
                     'Keuangan & Admin' => [
+                        ['approvals.index', 'Persetujuan', 'clipboard', 'approvals'],
                         ['promos.index', 'Promo', 'ticket', 'promos'],
                         ['expenses.index', 'Pengeluaran', 'cash', 'expenses'],
                         ['employees.index', 'Karyawan & Gaji', 'usergroup', 'employees'],
@@ -73,6 +74,8 @@
                     $pola = $it[4] ?? [\Illuminate\Support\Str::before($it[0], '.') . '*'];
                     return request()->routeIs(...$pola);
                 };
+                $pendingApproval = auth()->user()->canAccess('approvals')
+                    ? \App\Models\EditRequest::pending()->where('branch_id', current_branch())->count() : 0;
             @endphp
 
             @foreach ($groups as $label => $items)
@@ -87,7 +90,10 @@
                         <a href="{{ route($it[0]) }}"
                            class="nav-link {{ $navAktif($it) ? 'active' : '' }}">
                             @include('partials.icon', ['name' => $it[2]])
-                            {{ $it[1] }}
+                            <span class="flex-1">{{ $it[1] }}</span>
+                            @if ($it[0] === 'approvals.index' && $pendingApproval > 0)
+                                <span class="ml-auto inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-rose-500 text-white text-xs font-semibold">{{ $pendingApproval }}</span>
+                            @endif
                         </a>
                     @endforeach
                 @endif

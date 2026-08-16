@@ -6,6 +6,13 @@
     <form method="POST" action="{{ route('transactions.update', $trx) }}" x-data="editor()" class="space-y-4">
         @csrf @method('PUT')
 
+        @if ($modeAjuan)
+            <div class="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
+                Transaksi ini sudah <strong>lunas</strong>. Perubahan Anda akan <strong>diajukan untuk disetujui admin/owner</strong>, belum langsung diterapkan.
+                @if ($pendingAda)<div class="mt-1 text-amber-700">⚠ Sudah ada pengajuan yang menunggu untuk transaksi ini.</div>@endif
+            </div>
+        @endif
+
         <div class="grid lg:grid-cols-3 gap-6 items-start">
             {{-- KIRI: item --}}
             <div class="lg:col-span-2 space-y-4">
@@ -85,6 +92,12 @@
                         <label class="form-label">Diskon Manual (Rp)</label>
                         <input type="number" min="0" name="diskon" x-model.number="diskon" class="form-input text-right">
                     </div>
+                    @if ($modeAjuan)
+                        <div>
+                            <label class="form-label">Alasan Perubahan <span class="text-rose-500">*</span></label>
+                            <textarea name="alasan" rows="2" required class="form-input" placeholder="mis. pelanggan menambah ganti oli setelah lunas">{{ old('alasan') }}</textarea>
+                        </div>
+                    @endif
                 </div>
 
                 @if ($trx->tipe === 'servis')
@@ -105,7 +118,7 @@
                 </div>
 
                 <div class="flex gap-2">
-                    <button class="btn-primary flex-1" :disabled="!items.length">Simpan Perubahan</button>
+                    <button class="btn-primary flex-1" :disabled="!items.length">{{ $modeAjuan ? 'Ajukan Perubahan' : 'Simpan Perubahan' }}</button>
                     <a href="{{ route('transactions.show', $trx) }}" class="btn-secondary">Batal</a>
                 </div>
             </div>

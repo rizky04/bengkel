@@ -94,8 +94,15 @@ Route::middleware('auth')->group(function () {
         Route::get('transactions/{transaction}/nota', [TransactionController::class, 'nota'])->name('transactions.nota');
         Route::post('transactions/{transaction}/payment', [TransactionController::class, 'addPayment'])->name('transactions.payment');
         Route::patch('transactions/{transaction}/status', [TransactionController::class, 'updateStatus'])->name('transactions.status');
-        // Pembatalan: admin/owner saja
-        Route::delete('transactions/{transaction}', [TransactionController::class, 'cancel'])->name('transactions.cancel')->middleware('permission:transactions_edit');
+        // Pembatalan: admin/owner langsung; kasir → jadi pengajuan (dicek di controller)
+        Route::delete('transactions/{transaction}', [TransactionController::class, 'cancel'])->name('transactions.cancel');
+    });
+
+    // ── Persetujuan perubahan (admin/owner) ──
+    Route::middleware('permission:approvals')->group(function () {
+        Route::get('approvals', [\App\Http\Controllers\ApprovalController::class, 'index'])->name('approvals.index');
+        Route::post('approvals/{editRequest}/approve', [\App\Http\Controllers\ApprovalController::class, 'approve'])->name('approvals.approve');
+        Route::post('approvals/{editRequest}/reject', [\App\Http\Controllers\ApprovalController::class, 'reject'])->name('approvals.reject');
     });
 
     // ── Retur penjualan/servis ──

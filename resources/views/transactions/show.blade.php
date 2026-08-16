@@ -145,31 +145,44 @@
                     </div>
                 @endif
 
+                @php
+                    $adminEdit = auth()->user()->canAccess('transactions_edit');
+                    $bisaAksi = $adminEdit || auth()->user()->canAccess('pos'); // admin langsung, kasir mengajukan
+                    $ajukanMode = $trx->terkunci() && ! $adminEdit; // terkunci & bukan admin → jadi pengajuan
+                @endphp
+
+                {{-- Pengajuan menunggu --}}
+                @if ($pending)
+                    <div class="card p-4 bg-amber-50 border-amber-200 text-sm">
+                        <div class="font-medium text-amber-800">⏳ Menunggu persetujuan admin</div>
+                        <div class="text-amber-700 mt-1">
+                            {{ $pending->jenis === 'batal' ? 'Pembatalan' : 'Perubahan item' }}
+                            diajukan {{ $pending->pengaju?->name }} — “{{ $pending->alasan }}”
+                        </div>
+                    </div>
+                @endif
+
                 {{-- Edit & Retur --}}
-                @php $bolehEdit = ! $trx->terkunci() || auth()->user()->canAccess('transactions_edit'); @endphp
                 <div class="flex gap-2">
-                    @if ($bolehEdit)
-                        <a href="{{ route('transactions.edit', $trx) }}" class="btn-secondary btn-sm flex-1">✎ Edit</a>
+                    @if ($bisaAksi)
+                        <a href="{{ route('transactions.edit', $trx) }}" class="btn-secondary btn-sm flex-1">✎ {{ $ajukanMode ? 'Ajukan Edit' : 'Edit' }}</a>
                     @endif
                     @if (auth()->user()->canAccess('returns') && $trx->items->contains(fn ($it) => $it->sisaRetur() > 0))
                         <a href="{{ route('returns.create', ['transaction' => $trx->id]) }}" class="btn-secondary btn-sm flex-1">↩ Retur</a>
                     @endif
                 </div>
-                @if ($trx->terkunci() && ! auth()->user()->canAccess('transactions_edit'))
-                    <p class="text-xs text-gray-400">Transaksi sudah lunas — perubahan hanya oleh admin/owner.</p>
-                @endif
 
-                {{-- Batal + alasan (admin/owner) --}}
-                @if (auth()->user()->canAccess('transactions_edit'))
+                {{-- Batal / Ajukan pembatalan --}}
+                @if ($bisaAksi)
                 <div class="card p-4" x-data="{ open: false }">
                     <button type="button" @click="open = true" x-show="!open"
-                            class="w-full py-2 text-rose-600 text-sm hover:underline">Batalkan Transaksi</button>
+                            class="w-full py-2 text-rose-600 text-sm hover:underline">{{ $ajukanMode ? 'Ajukan Pembatalan' : 'Batalkan Transaksi' }}</button>
                     <form x-show="open" x-cloak method="POST" action="{{ route('transactions.cancel', $trx) }}"
-                          data-confirm="Batalkan transaksi {{ $trx->no_nota }}? Stok dikembalikan." class="space-y-2">
+                          data-confirm="{{ $ajukanMode ? 'Ajukan pembatalan transaksi ' . $trx->no_nota . ' ke admin?' : 'Batalkan transaksi ' . $trx->no_nota . '? Stok dikembalikan.' }}" class="space-y-2">
                         @csrf @method('DELETE')
                         <input name="alasan_batal" required placeholder="Alasan pembatalan…" class="form-input">
                         <div class="flex gap-2">
-                            <button class="btn-danger btn-sm flex-1">Ya, Batalkan</button>
+                            <button class="btn-danger btn-sm flex-1">{{ $ajukanMode ? 'Ya, Ajukan' : 'Ya, Batalkan' }}</button>
                             <button type="button" @click="open = false" class="btn-secondary btn-sm">Batal</button>
                         </div>
                     </form>
