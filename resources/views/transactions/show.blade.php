@@ -103,8 +103,8 @@
                 <div><span class="text-gray-500">Tanggal:</span> {{ $trx->tgl?->format('d/m/Y H:i') }}</div>
                 <div><span class="text-gray-500">Kasir:</span> {{ $trx->kasir?->name }}</div>
                 <div><span class="text-gray-500">Platform:</span> {{ $trx->platform?->nama ?? '-' }}</div>
+                <div><span class="text-gray-500">Pelanggan:</span> {{ $trx->customer?->nama ?? 'Walk-in Customer' }}</div>
                 @if ($trx->tipe === 'servis')
-                    <div><span class="text-gray-500">Pelanggan:</span> {{ $trx->customer?->nama ?? '-' }}</div>
                     <div><span class="text-gray-500">Kendaraan:</span> {{ $trx->vehicle?->plat ?? '-' }}</div>
                     <div><span class="text-gray-500">Mekanik:</span> {{ $trx->mekanik?->name ?? '-' }}</div>
                     @if ($trx->keluhan)<div><span class="text-gray-500">Keluhan:</span> {{ $trx->keluhan }}</div>@endif

@@ -83,8 +83,8 @@
                 <div class="card p-4 space-y-3">
                     @include('partials.field', ['name' => 'tgl', 'label' => 'Tanggal', 'type' => 'datetime-local', 'value' => $trx->tgl?->format('Y-m-d\TH:i'), 'required' => true])
                     @include('partials.search-select', ['name' => 'platform_id', 'label' => 'Platform', 'value' => $trx->platform_id, 'placeholder' => '— platform —', 'options' => $platforms->pluck('nama', 'id')])
+                    @include('partials.search-select', ['name' => 'customer_id', 'label' => 'Pelanggan', 'value' => $trx->customer_id, 'placeholder' => 'Walk-in Customer', 'options' => $customers->pluck('nama', 'id')])
                     @if ($trx->tipe === 'servis')
-                        @include('partials.search-select', ['name' => 'customer_id', 'label' => 'Pelanggan', 'value' => $trx->customer_id, 'placeholder' => '— pelanggan —', 'options' => $customers->pluck('nama', 'id')])
                         @include('partials.search-select', ['name' => 'vehicle_id', 'label' => 'Kendaraan', 'value' => $trx->vehicle_id, 'placeholder' => '— kendaraan —', 'options' => $vehicles->mapWithKeys(fn($v) => [$v->id => $v->plat.' — '.$v->merk.' '.$v->tipe])])
                         @include('partials.search-select', ['name' => 'mekanik_id', 'label' => 'Mekanik', 'value' => $trx->mekanik_id, 'placeholder' => '— mekanik —', 'options' => $mekaniks->pluck('name', 'id')])
                     @endif

@@ -48,7 +48,7 @@
                             <td class="whitespace-nowrap text-gray-600">{{ $t->tgl?->format('d/m/Y H:i') }}</td>
                             <td class="capitalize">{{ $t->tipe }}</td>
                             <td>
-                                {{ $t->customer?->nama ?? '-' }}
+                                {{ $t->customer?->nama ?? 'Walk-in Customer' }}
                                 @if ($t->vehicle)<span class="text-gray-400 text-xs">/ {{ $t->vehicle->plat }}</span>@endif
                             </td>
                             <td>@include('partials.status-pill', ['status' => $t->status])</td>

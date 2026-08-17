@@ -59,8 +59,8 @@ class PosController extends Controller
         $data = $request->validate([
             'tipe' => 'required|in:penjualan,servis',
             'platform_id' => 'nullable|exists:platforms,id',
-            'customer_id' => [Rule::requiredIf($request->tipe === 'servis'), 'nullable', 'exists:customers,id'],
-            'vehicle_id' => [Rule::requiredIf($request->tipe === 'servis'), 'nullable', 'exists:vehicles,id'],
+            'customer_id' => 'nullable|exists:customers,id',
+            'vehicle_id' => 'nullable|exists:vehicles,id',
             'mekanik_id' => 'nullable|exists:users,id',
             'keluhan' => 'nullable|string',
             'status_servis' => 'nullable|in:antri,dikerjakan,selesai',

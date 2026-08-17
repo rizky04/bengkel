@@ -26,23 +26,51 @@
                 </div>
             </div>
 
+            @php
+                $chevron = '<svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>';
+            @endphp
+
+            {{-- Pelanggan untuk penjualan (kosong = walk-in) --}}
+            <div class="card p-4" x-show="tipe === 'penjualan'" x-cloak>
+                <div class="relative" @click.outside="custOpen=false">
+                    <label class="form-label">Pelanggan <span class="text-xs font-normal text-gray-400">(kosongkan = Walk-in Customer)</span></label>
+                    <div class="flex gap-2">
+                        <button type="button" @click="custOpen=!custOpen; if(custOpen)$nextTick(()=>$refs.custQ.focus())"
+                                class="form-input flex-1 flex items-center justify-between gap-2 text-left">
+                            <span class="truncate" :class="!customer_id && 'text-gray-400'" x-text="custLabel() || 'Walk-in Customer'"></span>
+                            {!! $chevron !!}
+                        </button>
+                        <button type="button" x-show="customer_id" @click="customer_id=''; vehicle_id=''" class="px-3 rounded-lg border border-gray-200 text-sm text-gray-500">✕</button>
+                    </div>
+                    <div x-show="custOpen" x-cloak class="absolute z-30 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg">
+                        <div class="p-2 border-b border-gray-100"><input x-ref="custQ" x-model="custQ" placeholder="Cari nama / HP…" class="w-full rounded-lg border-gray-300 text-sm"></div>
+                        <div class="max-h-56 overflow-y-auto py-1">
+                            <template x-for="c in custFiltered" :key="c.id">
+                                <button type="button" @click="pilihPelanggan(c)" class="w-full text-left px-3 py-2 text-sm hover:bg-brand-light" x-text="c.nama + (c.hp ? ' ('+c.hp+')' : '')"></button>
+                            </template>
+                            <div x-show="!custFiltered.length" class="px-3 py-3 text-sm text-gray-400">Tidak ditemukan.</div>
+                        </div>
+                    </div>
+                    <a href="{{ route('customers.create') }}" target="_blank" class="inline-block mt-1 text-xs text-brand hover:underline">+ pelanggan baru</a>
+                </div>
+            </div>
+
+            {{-- customer_id dipakai penjualan & servis, hidden global --}}
+            <input type="hidden" name="customer_id" :value="customer_id">
+
             {{-- Info servis --}}
             <div class="card p-4 space-y-3" x-show="tipe === 'servis'" x-cloak>
-                @php
-                    $chevron = '<svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>';
-                @endphp
                 <div class="grid md:grid-cols-2 gap-3">
                     {{-- Pelanggan --}}
                     <div class="relative" @click.outside="custOpen=false">
-                        <label class="form-label">Pelanggan</label>
-                        <input type="hidden" name="customer_id" :value="customer_id">
-                        <button type="button" @click="custOpen=!custOpen; if(custOpen)$nextTick(()=>$refs.custQ.focus())"
+                        <label class="form-label">Pelanggan <span class="text-xs font-normal text-gray-400">(opsional = Walk-in)</span></label>
+                        <button type="button" @click="custOpen=!custOpen; if(custOpen)$nextTick(()=>$refs.custQ2.focus())"
                                 class="form-input flex items-center justify-between gap-2 text-left">
-                            <span class="truncate" :class="!customer_id && 'text-gray-400'" x-text="custLabel() || '— pilih pelanggan —'"></span>
+                            <span class="truncate" :class="!customer_id && 'text-gray-400'" x-text="custLabel() || 'Walk-in Customer'"></span>
                             {!! $chevron !!}
                         </button>
                         <div x-show="custOpen" x-cloak class="absolute z-30 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg">
-                            <div class="p-2 border-b border-gray-100"><input x-ref="custQ" x-model="custQ" placeholder="Cari nama / HP…" class="w-full rounded-lg border-gray-300 text-sm"></div>
+                            <div class="p-2 border-b border-gray-100"><input x-ref="custQ2" x-model="custQ" placeholder="Cari nama / HP…" class="w-full rounded-lg border-gray-300 text-sm"></div>
                             <div class="max-h-56 overflow-y-auto py-1">
                                 <template x-for="c in custFiltered" :key="c.id">
                                     <button type="button" @click="pilihPelanggan(c)" class="w-full text-left px-3 py-2 text-sm hover:bg-brand-light" x-text="c.nama + (c.hp ? ' ('+c.hp+')' : '')"></button>
@@ -59,7 +87,7 @@
                         <input type="hidden" name="vehicle_id" :value="vehicle_id">
                         <button type="button" :disabled="!customer_id" @click="vehOpen=!vehOpen; if(vehOpen)$nextTick(()=>$refs.vehQ.focus())"
                                 class="form-input flex items-center justify-between gap-2 text-left" :class="!customer_id && 'opacity-50 cursor-not-allowed'">
-                            <span class="truncate" :class="!vehicle_id && 'text-gray-400'" x-text="vehLabel() || (customer_id ? '— pilih kendaraan —' : 'pilih pelanggan dulu')"></span>
+                            <span class="truncate" :class="!vehicle_id && 'text-gray-400'" x-text="vehLabel() || (customer_id ? '— pilih kendaraan —' : 'walk-in / pilih pelanggan')"></span>
                             {!! $chevron !!}
                         </button>
                         <div x-show="vehOpen" x-cloak class="absolute z-30 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg">
@@ -383,10 +411,6 @@
 
             siap() {
                 if (!this.items.length) return false;
-                if (this.tipe === 'servis' && (!this.customer_id || !this.vehicle_id)) {
-                    Swal.fire({ icon: 'warning', title: 'Lengkapi pelanggan & kendaraan untuk servis.' });
-                    return false;
-                }
                 return true;
             },
             rp(n) { return 'Rp ' + Number(n || 0).toLocaleString('id-ID'); },
