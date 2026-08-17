@@ -144,10 +144,8 @@ class ReportController extends Controller
     public function piutang()
     {
         $piutang = Transaction::aktif()->where('transactions.branch_id', current_branch())
-            ->leftJoin('payments', 'payments.transaction_id', '=', 'transactions.id')
-            ->selectRaw('transactions.*, COALESCE(SUM(payments.jumlah),0) as dibayar_sum')
-            ->groupBy('transactions.id')
-            ->havingRaw('transactions.total - COALESCE(SUM(payments.jumlah),0) > 0')
+            ->selectRaw('transactions.*, COALESCE((SELECT SUM(jumlah) FROM payments WHERE payments.transaction_id = transactions.id), 0) as dibayar_sum')
+            ->havingRaw('transactions.total - dibayar_sum > 0')
             ->with('customer', 'vehicle')
             ->orderBy('transactions.tgl')->get();
 
