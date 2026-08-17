@@ -145,7 +145,7 @@ class ReportController extends Controller
     {
         $piutang = Transaction::aktif()->where('transactions.branch_id', current_branch())
             ->selectRaw('transactions.*, COALESCE((SELECT SUM(jumlah) FROM payments WHERE payments.transaction_id = transactions.id), 0) as dibayar_sum')
-            ->havingRaw('transactions.total - dibayar_sum > 0')
+            ->whereRaw('transactions.total - COALESCE((SELECT SUM(jumlah) FROM payments WHERE payments.transaction_id = transactions.id), 0) > 0')
             ->with('customer', 'vehicle')
             ->orderBy('transactions.tgl')->get();
 
